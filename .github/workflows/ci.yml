@@ -2,9 +2,9 @@ name: CI - DevSecOps Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ test-security-findings ]
   pull_request:
-    branches: [ main ]
+    branches: [ test-security-findings ]
 
 jobs:
   test:
@@ -24,7 +24,7 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck
-          Invoke-ScriptAnalyzer -Path ./src -Recurse -Severity Error
+          Invoke-ScriptAnalyzer -Path ./src -Recurse
       
       - name: Install Pester
         shell: pwsh
