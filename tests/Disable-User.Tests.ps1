@@ -206,8 +206,8 @@ AfterAll {
 	
 	# Fail Trivvy
 	# AWS Keys - Trivy definitely catches these
-	$aws_access_key_id = AKIAIOSFODNN7EXAMPLE
-	$aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+	$aws_access_key_id = "AKIAIOSFODNN7EXAMPLE"
+	$aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
 	# Generic passwords
 	$password = "SuperSecretPassword123!"
