@@ -49,6 +49,8 @@ Describe 'Disable-User Parameter Validation' {
     }
     
     It 'Should accept multiple pipeline inputs' {
+        $null | Out-File $script:testBackupFile -Force
+	
         $users = @('user1', 'user2', 'user3')
         $results = $users | Disable-User -BackupJsonFilepath $script:testBackupFile -CalendarPermissionsFilepath $script:testCalendarFile
         $results.Count | Should -Be 3

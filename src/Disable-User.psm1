@@ -49,10 +49,12 @@ function Disable-User {
 		Write-Verbose 'Starting Disable-User function'
 		
 		# TEST to fail Trivy
-'-----BEGIN RSA PRIVATE KEY-----
+		<#
+-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAu1+K8YJk4t9c9q6l2G3xYV7p1YFzq3Q1Yk9Xv8Wc0pXqY7p2
 Q8ZpL0FzV5gKj9Kx3mN8sDf9aBcDeFgHiJkLmNoPqRsTuVwXyZaBcDeFgHiJkLmN
------END RSA PRIVATE KEY-----'
+-----END RSA PRIVATE KEY-----
+#>
 
 		# Use environment temp with fallback
 		$tempDir = if ($env:TEMP) { $env:TEMP } else { $env:TMPDIR }
@@ -79,15 +81,15 @@ Q8ZpL0FzV5gKj9Kx3mN8sDf9aBcDeFgHiJkLmNoPqRsTuVwXyZaBcDeFgHiJkLmN
 
 			if (-not $CalendarPermissionsFilepath) {
 				$CalendarPermissionsFilepath = $FallbackCalendarPermissionsJson
-				Write-Verbose "Using default backup file: '$CalendarPermissionsFilepath'."
+				Write-Verbose "Using default calendar permissions file: '$CalendarPermissionsFilepath'."
 
 				if (-not $(Test-Path $CalendarPermissionsFilepath)) {
 					New-Item -Path $CalendarPermissionsFilepath -ItemType File -Force | Out-Null
 				}
             } elseif ($(Test-Path $CalendarPermissionsFilepath) -and (gci $CalendarPermissionsFilepath).Attributes -notlike 'Directory') {
-				Write-Verbose "Using Backup file '$CalendarPermissionsFilepath'"
+				Write-Verbose "Using calendar permissions file '$CalendarPermissionsFilepath'"
 			} else {
-				Write-Verbose "Creating Backup file '$CalendarPermissionsFilepath'"
+				Write-Verbose "Creating calendar permissions file '$CalendarPermissionsFilepath'"
 				New-Item -Path $CalendarPermissionsFilepath -ItemType File -Force | Out-Null
 			}
 		} Catch {
