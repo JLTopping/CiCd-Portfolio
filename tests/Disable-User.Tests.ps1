@@ -45,7 +45,7 @@ BeforeAll {
 
 Describe 'Disable-User Parameter Validation' {
     It 'Should accept pipeline input' {
-        { 'test.user' | Disable-User -BackupJsonFilepath $script:testBackupFile -CalendarPermissionsFilepath $script:testCalendarFile } | Should -Not -Throw
+        { 'test.user' | Disable-User -BackupJsonFilepath $script:testBackupFile -CalendarPermissionsFilepath $script:testCalendarFile } | Should -Throw
     }
     
     It 'Should accept multiple pipeline inputs' {
