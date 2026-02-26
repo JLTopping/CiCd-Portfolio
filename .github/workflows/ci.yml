@@ -58,6 +58,8 @@ jobs:
           severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
           exit-code: '1'
           scanners: 'vuln,secret,misconfig'
+          skip-dirs: ''
+          skip-files: ''
       
       # To be used for when Terraform scripts are added to the repository
       - name: Run Checkov IaC scanning
