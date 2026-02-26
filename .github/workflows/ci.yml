@@ -2,9 +2,9 @@ name: CI - DevSecOps Pipeline
 
 on:
   push:
-    branches: [ main,test-security-findings ]
+    branches: [ main ]
   pull_request:
-    branches: [ main,test-security-findings ]
+    branches: [ main ]
 
 jobs:
   test:
