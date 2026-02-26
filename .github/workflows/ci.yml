@@ -1,0 +1,67 @@
+name: CI - DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install PowerShell
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y powershell
+      
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck
+          Invoke-ScriptAnalyzer -Path ./src -Recurse -Severity Error
+      
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-Module -Name Pester -Force -SkipPublisherCheck
+      
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          Import-Module Pester
+          $config = [PesterConfiguration]::Default
+          $config.Run.Path = "./tests"
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputFormat = "NUnitXml"
+          $config.TestResult.OutputPath = "./test-results.xml"
+          Invoke-Pester -Configuration $config
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ./test-results.xml
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+      
+      # To be used for when Terraform scripts are added to the repository
+      - name: Run Checkov IaC scanning
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/
+          framework: all
+          soft_fail: true
