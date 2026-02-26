@@ -203,4 +203,9 @@ function Disable-User {
     }
 }
 
+function bad-function {
+    $unusedVariable = "This variable is never used"
+    Write-Host "This function is made to test PSScriptAnalyzer"
+}
+
 Export-ModuleMember -Function Disable-User
