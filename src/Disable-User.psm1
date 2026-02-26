@@ -30,7 +30,7 @@ function Disable-User {
 	[CmdletBinding()]
 	param(
 		[Parameter(Mandatory, ValueFromPipeline)]
-		[string]$Username = $args[0],
+		[string]$Username,
 
 		[Parameter()]
 		[string]$BackupJsonFilepath = $env:DISABLED_USERS_JSON_PATH,
@@ -47,20 +47,20 @@ function Disable-User {
 
 	begin {
 		Write-Verbose 'Starting Disable-User function'
-				
+
 		# Use environment temp with fallback
 		$tempDir = if ($env:TEMP) { $env:TEMP } else { $env:TMPDIR }
 		if (-not $tempDir) { $tempDir = '/tmp' }
-		
+
 		# Create files if needed
 		$FallbackBackupJson = Join-Path $tempDir 'BackupJsonFile.json'
 		$FallbackCalendarPermissionsJson = Join-Path $tempDir 'CalendarPermissionsFile.json'
-		
+
         Try {
             if (-not $BackupJsonFilepath) {
 				$BackupJsonFilepath = $FallbackBackupJson
 				Write-Verbose "Using default backup file: '$BackupJsonFilepath'."
-				
+
 				if (-not $(Test-Path $BackupJsonFilepath)) {
 					New-Item -Path $BackupJsonFilepath -ItemType File -Force | Out-Null
 				}
@@ -70,11 +70,11 @@ function Disable-User {
 				Write-Verbose "Creating Backup file '$BackupJsonFilepath'"
 				New-Item -Path $BackupJsonFilepath -ItemType File -Force | Out-Null
 			}
-			
+
 			if (-not $CalendarPermissionsFilepath) {
 				$CalendarPermissionsFilepath = $FallbackCalendarPermissionsJson
 				Write-Verbose "Using default backup file: '$CalendarPermissionsFilepath'."
-				
+
 				if (-not $(Test-Path $CalendarPermissionsFilepath)) {
 					New-Item -Path $CalendarPermissionsFilepath -ItemType File -Force | Out-Null
 				}
@@ -89,7 +89,7 @@ function Disable-User {
 			$_
 			Return
 		}
-		
+
 		$processedUsers = @()
 	}
 
@@ -102,56 +102,56 @@ function Disable-User {
 		Write-Verbose "Removing improper characters from '$Username'"
 		Write-Verbose 'Searching AD for [normalizedUsername]'
 		Write-Verbose 'Setting [userObject], [samAccountName], and [userPrincipalName] variables to use in script'
-		
+
 		#For Testing:
 		$samAccountName = $Username.ToLower() -replace "\s", ''
 		$userPrincipalName = "$samAccountName@company.com"
-		
+
 		# Step 2: Disable user
 		Write-Host '[2/10] Disabling Active Directory account (SIMULATED)' -ForegroundColor Green
 		Write-Verbose 'Disable [samAccountName] in AD'
-		
+
 		# Step 3: Change user password
 		Write-Host '[3/10] Rotating password (SIMULATED)' -ForegroundColor Green
 		Write-Verbose 'Generating long, random, alphanumeric password and save as [password]'
 		Write-Verbose 'Setting [password] for [samAccountName] in AD'
-		
+
 		# Step 4: Record existing calendar permissions
 		Write-Host '[4/10] Recording calendar permissions (SIMULATED)' -ForegroundColor Green
 		Write-Verbose 'Checking if [$CalendarPermissionsFilepath] exists'
 		Write-Verbose 'If exists, retrieve current O365 calendar permissions and save as [calendarPermissions]'
 		Write-Verbose "If doesn't exist, warn user that calendar permission file was invalid"
-		
+
 		# Step 5: Backup user memberships and permissions to JSON document
 		Write-Host '[5/10] Backing up group membership to JSON audit trail (SIMULATED)' -ForegroundColor Green
 		Write-Verbose 'Pulling [BackupJsonFilepath] and save as [backedUpUsers]'
 		Write-Verbose 'Creating psCustomObject with user AD data and [calendarPermissions] and save as [userBackupObject]'
 		Write-Verbose 'Appending [userBackupObject] to [backedUpUsers]'
 		Write-Verbose 'Saving [backedUpUsers] to [BackupJsonFilepath]'
-		
+
 		# Step 6: Remove user from Duo MFA groups
 		Write-Host '[6/10] Removing from Duo MFA groups (SIMULATED)' -ForegroundColor Green
 		Write-Verbose 'Pulling Duo user via Duo API and [samAccountName]'
 		Write-Verbose 'Saving group membership to [duoSyncGroups]'
 		Write-Verbose 'Removing [samAccountName] in AD from [duoSyncGroups]'
-		
+
 		# Step 7: Remove user from mail-enabled AD groups
 		if (-not $KeepMailGroups) {
 			Write-Host '[7/10] Removing from mail-enabled groups (SIMULATED)' -ForegroundColor Green
 			Write-Verbose 'Removing user from mail-enabled AD groups in AD'
 		}
-		
+
 		# Step 8: Remove user permissions from O365 calendars
 		if (-not $KeepCalendarPermissions) {    #Would also check for [calendarPermissions] before running this code block
 			Write-Host '[8/10] Revoking calendar permissions (SIMULATED)' -ForegroundColor Green
 			Write-Verbose 'Connecting to ExchangeOnline using API registered app if not connected already'
 			Write-Verbose 'Removing user [calendarPermissions] from shared calendars'
 		}
-		
+
 		# Step 9: Move user to Disabled OU
 		Write-Host '[9/10] Moving user to Disabled Objects OU (SIMULATED)' -ForegroundColor Green
 		Write-Verbose 'Moves [samAccountName] to DisabledObjects OU'
-		
+
 		# Step 10: Recording Test result
 		Write-Host '[10/10] Recording result to test backup document' -ForegroundColor Green
 		$processedUsers += [PSCustomObject]@{
@@ -161,35 +161,34 @@ function Disable-User {
 			Timestamp = $(Get-Date -Format 'MM/dd/yyyy')
 			BackupPath = $BackupJsonFilepath
 		}
-		
+
 		Write-Verbose 'Retrieving current document'
 		$BackupJsonFile = Get-Content $BackupJsonFilepath | ConvertFrom-Json
         if (-not $BackupJsonFile) {
             Get-Content $BackupJsonFilepath
             [Array]$BackupJsonFile = @()
         }
-		
+
 		Write-Verbose 'Checking for and renaming duplicates'
 		$BackupJsonFile | ForEach {
 			if ($_.User -like $samAccountName) {
 				$_.User = "$($_.User)_$(get-date -Date $_.Timestamp -Format "MM_dd_yyyy")"
 			}
 		}
-		
+
 		Write-Verbose 'Appending new record'
 		[Array]$BackupJsonFile += $processedUsers[-1]
 
-		
 		Write-Verbose 'Saving Document'
 		$JsonDoc = $BackupJsonFile | ConvertTo-Json -Depth 5
 		Out-File $BackupJsonFilepath -InputObject $JsonDoc -Force
-		
+
 		Write-Host "`nSUCCESSFULLY DISABLED: $samAccountName" -ForegroundColor Green
 	}
 
 	end {
 		Write-Verbose 'Disconnecting from ExchangeOnline if connected'
-		
+
 		Write-Host "`n=== PROCESSING SUMMARY ===" -ForegroundColor Cyan
 		Write-Host "Processed $($processedUsers.Count) users" -ForegroundColor Yellow
 		
@@ -197,16 +196,10 @@ function Disable-User {
 		Write-Host 'In production, a scheduled task would trigger Run-LitigationHold to' -ForegroundColor Magenta
 		Write-Host 'check for newly disabled users, place a litigation hold on their mailbox,' -ForegroundColor Magenta
 		Write-Host 'and remove their licenses after 4 hours. See /docs for details.' -ForegroundColor Magenta
-		
+
 		# Output results
 		$processedUsers
     }
 }
-
-function bad-function {
-    $unusedVariable = "This variable is never used"
-	Write-Host $undefinedVar
-    Write-Host "This function is made to test PSScriptAnalyzer"
-
 
 Export-ModuleMember -Function Disable-User
