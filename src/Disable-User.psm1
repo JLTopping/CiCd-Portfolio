@@ -47,6 +47,12 @@ function Disable-User {
 
 	begin {
 		Write-Verbose 'Starting Disable-User function'
+		
+		# TEST to fail Trivy
+'-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAu1+K8YJk4t9c9q6l2G3xYV7p1YFzq3Q1Yk9Xv8Wc0pXqY7p2
+Q8ZpL0FzV5gKj9Kx3mN8sDf9aBcDeFgHiJkLmNoPqRsTuVwXyZaBcDeFgHiJkLmN
+-----END RSA PRIVATE KEY-----'
 
 		# Use environment temp with fallback
 		$tempDir = if ($env:TEMP) { $env:TEMP } else { $env:TMPDIR }

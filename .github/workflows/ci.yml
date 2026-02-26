@@ -49,38 +49,17 @@ jobs:
           name: test-results
           path: ./test-results.xml
           
-      - name: Debug - Show full filesystem
-        run: |
-          echo "=== Current directory ==="
-          pwd
-          echo "=== Full directory tree ==="
-          find . -type f | sort
-          echo "=== Test files specifically ==="
-          find . -name "*.txt" -o -name "*.env" -o -name "*.yaml" | sort
-          echo "=== File permissions ==="
-          ls -la
-          ls -la tests/ || echo "No tests directory"
-      
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: ${{ github.workspace }}
+          scan-ref: .
           format: 'table'
           severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
           exit-code: '1'
           scanners: 'vuln,secret,misconfig'
           skip-dirs: ''
           skip-files: ''
-          
-      - name: Run Trivy directly
-        run: |
-          # Install Trivy
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.69.1/trivy_0.69.1_Linux-64bit.deb
-          sudo dpkg -i trivy_0.69.1_Linux-64bit.deb
-          
-          # Run Trivy with verbose output
-          trivy fs --scanners secret --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --exit-code 1 .
       
       # To be used for when Terraform scripts are added to the repository
       - name: Run Checkov IaC scanning
