@@ -49,6 +49,8 @@ Describe 'Disable-User Parameter Validation' {
     }
     
     It 'Should accept multiple pipeline inputs' {
+		$null | Out-File $script:testBackupFile -Force
+
         $users = @('user1', 'user2', 'user3')
         $results = $users | Disable-User -BackupJsonFilepath $script:testBackupFile -CalendarPermissionsFilepath $script:testCalendarFile
         $results.Count | Should -Be 3
@@ -69,17 +71,17 @@ Describe 'Disable-User Demo Mode' {
         $null | Out-File $script:testBackupFile -Force
         $null | Out-File $script:fallbackBackupFile -Force
     }
-    
+
      It 'Should run without errors in demo mode with defaults' {
         # This test relies on the function's built-in fallbacks
         { Disable-User -Username 'jsmith' } | Should -Not -Throw
     }
-    
+
     It 'Should output result objects' {
         $result = Disable-User -Username 'jsmith'
         $result | Should -Not -BeNullOrEmpty
     }
-    
+
     It "Should create mock data directory if it doesn't exist" {
         $tempPath = Join-Path $tempDir 'pester-test-mock'
         if (Test-Path $tempPath) { Remove-Item $tempPath -Recurse -Force }
@@ -93,51 +95,51 @@ Describe 'Disable-User Backup Functionality' {
         # Create clean test file
         $null | Out-File $script:testBackupFile -Force
     }
-    
+
     It "Should create backup file if it doesn't exist" {
         $testFile = Join-Path $tempDir 'pester-test-backup.json'
         if (Test-Path $testFile) { Remove-Item $testFile -Force }
-        
+
         Disable-User -Username 'jsmith' -BackupJsonFilepath $testFile
-        
+
         Test-Path $testFile | Should -Be $true
         $content = Get-Content $testFile | ConvertFrom-Json
         $content | Should -Not -BeNullOrEmpty
     }
-    
+
     It 'Should append to existing backup file' {
         # First disable
         Disable-User -Username 'user1' -BackupJsonFilepath $script:testBackupFile
-        
+
         # Second disable
         Disable-User -Username 'user2' -BackupJsonFilepath $script:testBackupFile
-        
+
         $content = Get-Content $script:testBackupFile | ConvertFrom-Json
         $content.Count | Should -Be 2
         $content[0].User | Should -Be 'user1'
         $content[1].User | Should -Be 'user2'
     }
-    
+
     It 'Should handle duplicate usernames in backup' {
         # First disable
         Disable-User -Username 'jsmith' -BackupJsonFilepath $script:testBackupFile
-        
+
         # Get the content and verify it exists
         [Array]$content = Get-Content $script:testBackupFile | ConvertFrom-Json
         $content.Count | Should -Be 1
-        
+
         # Store the disabled date for later comparison
         $originalDate = $content[0]._DisabledDate
-        
+
         # Disable same user again (should rename old entry)
         Disable-User -Username 'jsmith' -BackupJsonFilepath $script:testBackupFile
-        
+
         $content = Get-Content $script:testBackupFile | ConvertFrom-Json
         $content.Count | Should -Be 2
-        
+
         # First entry should have modified name with date
         $content[0].User | Should -Match 'jsmith_'
-        
+
         # Second entry should be the new one
         $content[1].User | Should -Be 'jsmith'
     }
@@ -147,10 +149,10 @@ Describe 'Disable-User Calendar Permissions' {
     It 'Should handle missing calendar permissions file gracefully' {
         $missingFile = Join-Path $tempDir 'missing.json'
         if (Test-Path $missingFile) { Remove-Item $missingFile -Force }
-        
+
         { Disable-User -Username 'jsmith' -CalendarPermissionsFilepath $missingFile } | Should -Not -Throw
     }
-    
+
     It 'Should process calendar permissions when file exists' {
         # Create test calendar permissions file
         $testCalendarFile = Join-Path $tempDir 'pester-calendar.json'
@@ -163,7 +165,7 @@ Describe 'Disable-User Calendar Permissions' {
             }
         )
         $testData | ConvertTo-Json -Depth 3 | Set-Content $testCalendarFile
-        
+
         { Disable-User -Username 'jsmith' -CalendarPermissionsFilepath $testCalendarFile } | Should -Not -Throw
     }
 }
@@ -179,11 +181,11 @@ Describe 'Disable-User Edge Cases' {
     It 'Should handle username with spaces' {
         { Disable-User -Username 'john smith' } | Should -Not -Throw
     }
-    
+
     It 'Should handle username with dots' {
         { Disable-User -Username 'john.smith' } | Should -Not -Throw
     }
-    
+
     It 'Should handle very long username' {
         $longName = 'a' * 100
         { Disable-User -Username $longName } | Should -Not -Throw
@@ -197,7 +199,7 @@ AfterAll {
         (Join-Path $tempDir 'pester-calendar.json'),
         (Join-Path $tempDir 'pester-test-mock')
     )
-    
+
     foreach ($file in $testFiles) {
         if (Test-Path $file) {
             Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
