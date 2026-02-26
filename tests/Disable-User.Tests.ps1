@@ -45,7 +45,7 @@ BeforeAll {
 
 Describe 'Disable-User Parameter Validation' {
     It 'Should accept pipeline input' {
-        { 'test.user' | Disable-User -BackupJsonFilepath $script:testBackupFile -CalendarPermissionsFilepath $script:testCalendarFile } | Should -Throw
+        { 'test.user' | Disable-User -BackupJsonFilepath $script:testBackupFile -CalendarPermissionsFilepath $script:testCalendarFile } | Should -Not -Throw
     }
     
     It 'Should accept multiple pipeline inputs' {
@@ -203,4 +203,23 @@ AfterAll {
             Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+	
+	# Fail Trivvy
+	# AWS Keys - Trivy definitely catches these
+	$aws_access_key_id = AKIAIOSFODNN7EXAMPLE
+	$aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+	# Generic passwords
+	$password = "SuperSecretPassword123!"
+	$Password = "Admin123!"
+	$PASSWORD = "P@ssw0rd123"
+
+	# API Keys
+	$api_key = "sk_live_1234567890abcdef"
+	$apikey = "1234567890abcdef1234567890abcdef"
+	$API_KEY = "AIzaSyDqX8fBnM5X5X5X5X5X5X5X5X5X5X5X5X5"
+
+	# Connection strings
+	$connection_string = "Server=myserver;Database=mydb;User Id=admin;Password=Password123!;"
+	$ConnectionString = "Data Source=server;Initial Catalog=db;User ID=sa;Password=Pass@word1"
 }
