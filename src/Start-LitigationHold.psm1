@@ -146,9 +146,9 @@ function Start-LitigationHold {
 
 		# Step 4: Verify license removal for previously processed users
 		Write-Host '[4/6] Verifying licenses removed for previously processed users (SIMULATED)' -ForegroundColor Green
-		Write-Verbose "Checking license groups: $($O365LicenseGroups -join ', ')"
-		Write-Verbose "Would verify none of the $($processedUsers.Count) processed users still have licenses"
-		Write-Verbose 'If licenses found, would log error and remove from list for reprocessing'
+		Write-Verbose "Pulling members from license groups: $($O365LicenseGroups -join ', ')"
+		Write-Verbose "Verifying if any of the $($processedUsers.Count) processed users from the list still have licenses"
+		Write-Verbose 'Removing users from license groups if found and log any successes or errors'
 
 		# Step 5: Identify disabled users not yet on hold
 		Write-Host '[5/6] Identifying disabled users requiring litigation hold (SIMULATED)' -ForegroundColor Green
@@ -218,8 +218,8 @@ function Start-LitigationHold {
 		}
 
 		Write-Host "`nARCHITECTURE NOTE:" -ForegroundColor Magenta
-		Write-Host 'In production, this function runs daily and schedules license removal' -ForegroundColor Magenta
-		Write-Host '4 hours after hold application. See /docs/ARCHITECTURE.md for details.' -ForegroundColor Magenta
+		Write-Host 'In production, this function runs as a scheduled task' -ForegroundColor Magenta
+		Write-Host 'every 4 hours. See /docs/ARCHITECTURE.md for details.' -ForegroundColor Magenta
 
 		# Return results as object
 		[PSCustomObject]@{

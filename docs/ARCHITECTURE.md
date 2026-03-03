@@ -19,12 +19,11 @@ The architecture follows a **defense-in-depth** approach, balancing **security**
 ```
 [HR System] → [Manual Trigger] → [Disable-User] → [Revokes User Access & Updates JSON Audit Trail]
                                          ↓
-                              [Start-LitigationHold ScheduledTask] → [Enable Litigation Hold & Verify License Removal]
+                              [Start-LitigationHold ScheduledTask] → [Verify License Removal of previously processed users 7 Enable Litigation Hold]
                                          ↓
                               [4-Hour Delay (Safety Window)]
                                          ↓
-                              [RetrieveLicenses ScheduledTask] → [License Removal]
-                                                               → [Update Audit Logs]
+                              [Start-LitigationHold ScheduledTask] → [Verify License Removal of previously processed users 7 Enable Litigation Hold]
 ```
 
 ---
@@ -93,7 +92,7 @@ The architecture follows a **defense-in-depth** approach, balancing **security**
 
 ## Component 2: `Start-LitigationHold`
 
-**Purpose:** Apply legal hold to newly disabled users and verify that licenses were successfully removed.
+**Purpose:** Apply legal hold to newly disabled users and verify that licenses were successfully removed of previously processed users.
 
 ### Why Separate Functions?
 
@@ -108,8 +107,8 @@ The architecture follows a **defense-in-depth** approach, balancing **security**
 
 - Disable-User creates a scheduled task to run RetrieveLicenses after 4 hours
 - RetrieveLicenses removes users from O365 license groups
-- Start-LitigationHold (running daily) checks that no users in its processed list still appear in license groups
-- If licenses are found: The user is removed from the litigation hold list and logged as an error, allowing them to be reprocessed the next day
+- Start-LitigationHold (running every 4 hours) checks that no users in its processed list still appear in license groups
+- If licenses are found: The user's license is removed and results are logged
 
 This creates a self-healing system where temporary failures (network issues, Exchange throttling, service outages) don't result in permanent license retention.
 
@@ -201,35 +200,6 @@ The City of Hoover environment predates widespread adoption of `SecretManagement
 
 ---
 
-## lScheduling Architecture
-
-### Task Creation Pattern
-
-```powershell
-# Create trigger for 4 hours in the future
-$triggerTime = (Get-Date).AddHours(4)
-$trigger = New-ScheduledTaskTrigger -Once -At $triggerTime
-
-# Create action to run the script
-$action = New-ScheduledTaskAction -Execute 'Powershell.exe' `
-    -Argument "-File `"$scriptPath\Start-LitigationHold.ps1`" -UserList `"$userList`""
-
-# Register task (auto-deletes after execution)
-Register-ScheduledTask "RemoveDisabledUsersO365Licenses_$timestamp" `
-    -InputObject $taskObject
-```
-
-### Why Windows Scheduled Tasks?
-
-| Option | Considerations |
-|--------|------------|------------------|
-| **Azure Automation** | Script needs to manage on-premises servers and applications inaccessible by the cloud |
-| **SQL Server Agent** | Not all servers have SQL |
-| **Custom Windows Service** | Overkill; scheduled tasks are built-in |
-| **Windows Scheduled Tasks** | Native, reliable, auditable |
-
----
-
 ## Audit & Compliance
 
 ### Audit Trail Requirements
@@ -275,21 +245,23 @@ Register-ScheduledTask "RemoveDisabledUsersO365Licenses_$timestamp" `
 
 ## Recovery Procedures
 
-### Scenario 1: Accidental Termination (< 24 hours)
+### Scenario 1: Accidental Termination (< 4 hours)
 
 1. Delete the scheduled task before it runs
 2. Re-enable AD account: `Enable-ADAccount $username`
 3. Re-add to groups (use JSON backup for reference)
 4. Reset password to known value
 
-### Scenario 2: Hold Applied, Licenses Not Yet Removed (< 28 hours)
+### Scenario 2: Hold Applied, Licenses Not Yet Removed (< 4-8 hours)
 
-1. Delete the scheduled RetrieveLicenses task
+1. Remove the user from the list of processed users
 2. Remove litigation hold: Set-Mailbox -LitigationHoldEnabled $false
 3. Re-enable AD account
-4. Restore from JSON backup
+4. Re-add to groups (use JSON backup for reference)
+5. Reset password to known value
+6. Restore from JSON backup
 
-### Scenario 3: Hold Applied, Licenses Removed (> 28 hours)
+### Scenario 3: Hold Applied, Licenses Removed (> 8 hours)
 
 1. Use `Restore-User` function (restores from soft-deleted mailbox if <= 30 days or recreates account and attaches inactive mailbox if > 30 days)
 2. Re-add to groups (use JSON backup)
@@ -300,8 +272,7 @@ Register-ScheduledTask "RemoveDisabledUsersO365Licenses_$timestamp" `
 
 1. Start-LitigationHold logs error and removes user from hold list
 2. User will be reprocessed automatically in next cycle
-3. New RetrieveLicenses task is scheduled
-4. If failures persist, investigate task execution history
+3. If failures persist, investigate task execution history
 
 ---
 
